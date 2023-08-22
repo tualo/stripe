@@ -25,9 +25,9 @@ class Webhook implements IRoute{
             $event = null;
 
             file_put_contents(App::get('tempPath') . '/.stripe.payload.log',$payload);
-            file_put_contents(App::get('tempPath') . '/.stripe.request.log',$_REQUEST);
-            file_put_contents(App::get('tempPath') . '/.stripe.server.log',$_SERVER);
-            
+            file_put_contents(App::get('tempPath') . '/.stripe.request.log',print_r($_REQUEST,true));
+            file_put_contents(App::get('tempPath') . '/.stripe.server.log',print_r($_SERVER,true));
+
             try {
                 $event = StripeWebhook::constructEvent( $payload, $sig_header, $endpoint_secret );
             } catch(\UnexpectedValueException $e) {
