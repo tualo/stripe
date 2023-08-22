@@ -11,7 +11,7 @@ class Webhook implements IRoute{
     
     public static function register(){
         BasicRoute::add('/stripe/webhook',function($matches){
-            $db = TualoApplication::get('session')->getDB();
+            $db = App::get('session')->getDB();
 
             // The library needs to be configured with your account's secret key.
             // Ensure the key is kept out of any version control system you might be using.
@@ -24,6 +24,10 @@ class Webhook implements IRoute{
             $sig_header = $_SERVER['HTTP_STRIPE_SIGNATURE'];
             $event = null;
 
+            file_put_contents(App::get('tempPath') . '/.stripe.payload.log',$payload);
+            file_put_contents(App::get('tempPath') . '/.stripe.request.log',$_REQUEST);
+            file_put_contents(App::get('tempPath') . '/.stripe.server.log',$_SERVER);
+            
             try {
                 $event = StripeWebhook::constructEvent( $payload, $sig_header, $endpoint_secret );
             } catch(\UnexpectedValueException $e) {

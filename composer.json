@@ -17,6 +17,6 @@
     },
     "minimum-stability": "dev",
     "require": {
-        "jlevers/selling-partner-api": "^5.5"
+        "stripe/stripe-php": "*"
     }
 }

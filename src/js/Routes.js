@@ -1,9 +1,9 @@
-Ext.define('TualoOffice.routes.Skeleton',{
-    url: 'skeleton',
+Ext.define('Tualo.routes.Stripe',{
+    url: 'stripe',
     handler: {
         action: function(token){
             console.log('onAnyRoute',token);
-            alert('skeleton','ok');
+            alert('stripe','ok');
         },
         before: function (action) {
             console.log('onBeforeToken',action);
