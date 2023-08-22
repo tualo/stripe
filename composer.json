@@ -1,0 +1,22 @@
+{
+    "name": "tualo/stripe",
+    "description": "tualo - stripe api",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Thomas Hoffmann",
+            "email": "thomas.hoffmann@tualo.de"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "Tualo\\Office\\Stripe\\": "src/"
+        },
+        "files": ["src/functions.php"]
+    },
+    "minimum-stability": "dev",
+    "require": {
+        "jlevers/selling-partner-api": "^5.5"
+    }
+}
