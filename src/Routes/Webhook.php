@@ -44,6 +44,7 @@ class Webhook implements IRoute{
                 }
 
                 
+                file_put_contents(App::get('tempPath') . '/.stripe.'.$event->type.'.log',var_dump($event->data->object,true));
                 // Handle the event
                 switch ($event->type) {
                     case 'account.updated':
@@ -424,6 +425,8 @@ class Webhook implements IRoute{
                     default:
                     echo 'Received unknown event type ' . $event->type;
                 }
+
+
                 
                 http_response_code(200);
                 exit();
