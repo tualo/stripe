@@ -38,6 +38,7 @@ class API {
             'line_items' => [[
                 # Provide the exact Price ID (e.g. pr_1234) of the product you want to sell
                 'price_data' => [
+                    'currency'=>'eur',
                     'product_data'=>[
                         'name'=>$product_name,
                         'description'=>$product_description
