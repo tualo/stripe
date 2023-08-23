@@ -16,6 +16,9 @@ class Webhook implements IRoute{
 
                 // The library needs to be configured with your account's secret key.
                 // Ensure the key is kept out of any version control system you might be using.
+
+                
+
                 $stripe = new StripeClient($db->singleValue('SELECT val FROM stripe_environment WHERE id="client_secret"',[],'val'));            
 
                 // This is your Stripe CLI webhook secret for testing your endpoint locally.
@@ -25,27 +28,44 @@ class Webhook implements IRoute{
                 $sig_header = $_SERVER['HTTP_STRIPE_SIGNATURE'];
                 $event = null;
 
-                file_put_contents(App::get('tempPath') . '/.stripe.payload.log',$payload);
-                file_put_contents(App::get('tempPath') . '/.stripe.request.log',print_r($_REQUEST,true));
-                file_put_contents(App::get('tempPath') . '/.stripe.server.log',print_r($_SERVER,true));
+                // file_put_contents(App::get('tempPath') . '/.stripe.payload.log',$payload);
+                // file_put_contents(App::get('tempPath') . '/.stripe.request.log',print_r($_REQUEST,true));
+                // file_put_contents(App::get('tempPath') . '/.stripe.server.log',print_r($_SERVER,true));
 
                 try {
                     $event = StripeWebhook::constructEvent( $payload, $sig_header, $endpoint_secret );
                 } catch(\UnexpectedValueException $e) {
                     // Invalid payload
                     http_response_code(400);
-                    echo $e->getMessage();
+                    echo "UnexpectedValueException ".$e->getMessage();
+                    $db->direct('insert into stripe_webhook_errors ( errordata ) values ( {errordata})',
+                        [
+                            'errordata'=>"UnexpectedValueException ".$e->getMessage()
+                        ]
+                    );
                     exit();
                 } catch(SignatureVerificationException $e) {
                     // Invalid signature
-                    echo $e->getMessage();
+                    echo "SignatureVerificationException ".$e->getMessage();
+                    $db->direct('insert into stripe_webhook_errors ( errordata ) values ( {errordata})',
+                        [
+                            'errordata'=>"SignatureVerificationException ".$e->getMessage()
+                        ]
+                    );
+
                     http_response_code(400);
                     exit();
                 }
 
                 
-                file_put_contents(App::get('tempPath') . '/.stripe.'.$event->type.'.log',var_dump($event->data->object,true));
+                // file_put_contents(App::get('tempPath') . '/.stripe.'.$event->type.'.log',var_dump($event->data->object,true));
                 // Handle the event
+                $db->direct('insert into stripe_webhook ( eventtype,eventdata) values ( {eventtype},{eventdata})',
+                    [
+                        'eventtype'=>$event->type,
+                        'eventdata'=>$payload
+                    ]
+                );
                 switch ($event->type) {
                     case 'account.updated':
                     $account = $event->data->object;
