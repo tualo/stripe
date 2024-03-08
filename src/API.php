@@ -21,6 +21,11 @@ use Stripe\Checkout;
 
 class API {
 
+    private static $testenvironment = true;
+    public static function setTestEnvironment(bool $value):void{
+        self::$testenvironment = $value;
+    }
+
     public static function addShorthandCheckout(
         string $success_url,
         string $cancel_url,
