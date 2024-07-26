@@ -94,6 +94,8 @@ class API {
         string $product_name,
         string $product_description,
         float $amount,
+        int $quantity,
+        int $expires_in=3600,
         string $inteval='month',
         int $interval_count=1
 
@@ -117,11 +119,12 @@ class API {
                             'interval_count'=>$interval_count
                         ]
                     ],
-                'quantity' => 1, // Set the quantity to 1 for a standard subscription
+                'quantity' => $quantity, // Set the quantity to 1 for a standard subscription
             ]],
             'mode' => 'subscription',
             'success_url' =>    $success_url,
             'cancel_url' =>     $cancel_url,
+            'expires_at' =>     $expires_in,
         ]);
 
 
