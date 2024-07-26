@@ -65,4 +65,70 @@ class API {
             'expires_at'=>$checkout_session->expires_at
         ];
     }
+
+    public static function createCustomer(
+        string $name,
+        string $email,
+        array $address=[],
+    ):array{
+        
+        $db = App::get('session')->getDB();
+        $stripeSecretKey = $db->singleValue('SELECT val FROM stripe_environment WHERE id="client_secret"',[],'val');
+        Stripe::setApiKey($stripeSecretKey);
+        $data =[
+            'name' => $name,
+            'email' => $email,
+        ];
+        if (count($address)>0){
+            $data['address'] = $address;
+        }
+        $response = $stripe->customers->create($data);
+        return $response;
+    }
+
+    public static function createSubscription(
+
+
+        string $success_url,
+        string $cancel_url,
+        string $product_name,
+        string $product_description,
+        float $amount,
+        string $inteval='month',
+        int $interval_count=1
+
+    ):array{
+        $db = App::get('session')->getDB();
+        $stripeSecretKey = $db->singleValue('SELECT val FROM stripe_environment WHERE id="client_secret"',[],'val');
+        Stripe::setApiKey($stripeSecretKey);
+        // Create a checkout session
+        $session = \Stripe\Checkout\Session::create([
+            'payment_method_types' => ['card'],
+            'line_items' => [[
+                'price_data' => [
+                        'currency'=>'eur',
+                        'product_data'=>[
+                            'name'=>$product_name,
+                            'description'=>$product_description
+                        ],
+                        'quantity' => round(100*floatval($amount),0),
+                        'recurring' =>[
+                            'interval'=>$inteval,
+                            'interval_count'=>$interval_count
+                        ]
+                    ],
+                'quantity' => 1, // Set the quantity to 1 for a standard subscription
+            ]],
+            'mode' => 'subscription',
+            'success_url' =>    $success_url,
+            'cancel_url' =>     $cancel_url,
+        ]);
+
+
+        return  [
+            'url'=>$checkout_session->url,
+            'id'=>$checkout_session->id,
+            'payment_intent'=>$checkout_session->payment_intent
+        ];
+    }
 }
