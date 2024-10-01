@@ -86,6 +86,15 @@ class API {
         return $response;
     }
 
+    
+
+    public static function cancelSubscription($id){
+        $db = App::get('session')->getDB();
+        $stripeSecretKey = $db->singleValue('SELECT val FROM stripe_environment WHERE id="client_secret"',[],'val');
+        Stripe::setApiKey($stripeSecretKey);
+        return $stripe->subscriptions->cancel($id, []);
+    }
+
     public static function createSubscription(
 
 
