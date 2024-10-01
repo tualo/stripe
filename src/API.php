@@ -92,6 +92,7 @@ class API {
         $db = App::get('session')->getDB();
         $stripeSecretKey = $db->singleValue('SELECT val FROM stripe_environment WHERE id="client_secret"',[],'val');
         Stripe::setApiKey($stripeSecretKey);
+        $stripe = new \Stripe\StripeClient($stripeSecretKey);
         return $stripe->subscriptions->cancel($id, []);
     }
 
