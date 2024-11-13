@@ -114,7 +114,7 @@ class API {
         $stripeSecretKey = $db->singleValue('SELECT val FROM stripe_environment WHERE id="client_secret"',[],'val');
         Stripe::setApiKey($stripeSecretKey);
         // Create a checkout session
-        $session = \Stripe\Checkout\Session::create([
+        $checkout_session = \Stripe\Checkout\Session::create([
             'payment_method_types' => ['card'],
             'line_items' => [[
                 'price_data' => [
@@ -123,7 +123,7 @@ class API {
                             'name'=>$product_name,
                             'description'=>$product_description
                         ],
-                        'quantity' => round(100*floatval($amount),0),
+                        'unit_amount' => round(100*floatval($amount),0),
                         'recurring' =>[
                             'interval'=>$inteval,
                             'interval_count'=>$interval_count
