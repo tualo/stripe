@@ -8,8 +8,59 @@ use Stripe\Webhook as StripeWebhook;
 use Stripe\Exception\SignatureVerificationException;
 
 class Webhook implements IRoute{
-    
+
     public static function register(){
+
+        BasicRoute::add('/apple/webhook/sandbox',function($matches){
+            try {
+                $db = App::get('session')->getDB();
+                $payload = @file_get_contents('php://input');
+                if (is_null($payload)||$payload=="") $payload="[]";
+                $db->direct('insert into apple_webhook ( eventtype,payload,get,post,server) values ( {eventtype},{payload},{get},{post},{server})',
+                    [
+                        'eventtype'=>'apple sandbox',
+                        'payload'=>$payload,
+                        'get'=>json_encode($_GET),
+                        'server'=>json_encode($_SERVER),
+                        'post'=>json_encode( $_POST)
+                    ]
+                );
+
+                http_response_code(200);
+                exit();
+
+            } catch(\Exception $e) {
+            }
+
+
+        },['get','post','put','patch','delete'],true);
+
+        
+        BasicRoute::add('/apple/webhook',function($matches){
+            try {
+                $db = App::get('session')->getDB();
+                $payload = @file_get_contents('php://input');
+                if (is_null($payload)||$payload=="") $payload="[]";
+                $db->direct('insert into apple_webhook ( eventtype,payload,get,post,server) values ( {eventtype},{payload},{get},{post},{server})',
+                    [
+                        'eventtype'=>'apple',
+                        'payload'=>$payload,
+                        'get'=>json_encode($_GET),
+                        'server'=>json_encode($_SERVER),
+                        'post'=>json_encode( $_POST)
+                    ]
+                );
+
+                http_response_code(200);
+                exit();
+
+            } catch(\Exception $e) {
+            }
+
+
+        },['get','post','put','patch','delete'],true);
+
+
         BasicRoute::add('/stripe/webhook',function($matches){
             try {
                 $db = App::get('session')->getDB();
