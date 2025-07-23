@@ -31,7 +31,8 @@ class SendMoney implements IRoute
                 $sender = new SendToBankAccount($stripeSecretKey);
 
                 $accountData = [];
-                if (file_exists('/home/worldcontact/www/server/temp/stripe_account_data.jsonon')) {
+                if (file_exists('/home/worldcontact/www/server/temp/stripe_account_data.json')) {
+
                     $accountData = json_decode(file_get_contents('/home/worldcontact/www/server/temp/stripe_account_data.json'), true);
                 }
                 $account = $sender->createExpressAccount($accountData);
