@@ -320,4 +320,91 @@ class SendToBankAccount
 
         return bcmod($numeric, '97') === '1';
     }
+
+
+    /**
+     * Erstellt einen Express Account OHNE ToS-Akzeptierung
+     * 
+     * @param array $accountData Account-Daten
+     * @return Account
+     * @throws Exception
+     */
+    public function createExpressAccountWithoutToS(array $accountData): Account
+    {
+        try {
+            $account = Account::create([
+                'type' => 'express',
+                'country' => $this->config['country'],
+                'email' => $accountData['email'],
+                'capabilities' => [
+                    'transfers' => ['requested' => true],
+                ],
+                'business_type' => $accountData['business_type'] ?? 'individual',
+                'individual' => $this->buildIndividualData($accountData),
+                'external_account' => $this->buildBankAccountData($accountData),
+                // ToS-Akzeptierung entfernt!
+                'settings' => [
+                    'payouts' => [
+                        'schedule' => [
+                            'interval' => 'manual'
+                        ]
+                    ]
+                ]
+            ]);
+
+            return $account;
+        } catch (Exception $e) {
+            throw new Exception("Fehler beim Erstellen des Express Accounts: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Erstellt einen Onboarding-Link für Account-Verifizierung
+     * 
+     * @param string $accountId Account ID
+     * @return string Onboarding URL
+     * @throws Exception
+     */
+    public function createAccountOnboardingLink(string $accountId): string
+    {
+        try {
+            $accountLink = \Stripe\AccountLink::create([
+                'account' => $accountId,
+                'refresh_url' => 'https://yourdomain.com/stripe/refresh',
+                'return_url' => 'https://yourdomain.com/stripe/return',
+                'type' => 'account_onboarding',
+            ]);
+
+            return $accountLink->url;
+        } catch (Exception $e) {
+            throw new Exception("Fehler beim Erstellen des Onboarding-Links: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Prüft den Onboarding-Status eines Accounts
+     * 
+     * @param string $accountId Account ID
+     * @return array Status-Informationen
+     */
+    public function checkAccountOnboardingStatus(string $accountId): array
+    {
+        try {
+            $account = Account::retrieve($accountId);
+
+            return [
+                'details_submitted' => $account->details_submitted,
+                'charges_enabled' => $account->charges_enabled,
+                'payouts_enabled' => $account->payouts_enabled,
+                'requirements' => [
+                    'currently_due' => $account->requirements->currently_due ?? [],
+                    'eventually_due' => $account->requirements->eventually_due ?? [],
+                    'past_due' => $account->requirements->past_due ?? [],
+                    'pending_verification' => $account->requirements->pending_verification ?? []
+                ]
+            ];
+        } catch (Exception $e) {
+            throw new Exception("Fehler beim Status-Abruf: " . $e->getMessage());
+        }
+    }
 }
