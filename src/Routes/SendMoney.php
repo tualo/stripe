@@ -13,6 +13,71 @@ class SendMoney implements IRoute
 {
     public static function register()
     {
+
+        // Route zum Laden von Testguthaben
+        BasicRoute::add('/stripe/add-test-funds', function ($matches) {
+            try {
+                $db = App::get('session')->getDB();
+                $stripeSecretKey = $db->singleValue(
+                    'SELECT val FROM stripe_environment WHERE id="client_secret"',
+                    [],
+                    'val'
+                );
+
+                $amount = floatval($_GET['amount'] ?? 100.00);
+
+                $sender = new SendToBankAccount($stripeSecretKey);
+
+                // Aktuelles Guthaben anzeigen
+                $balanceBefore = $sender->checkAvailableBalance();
+                echo "Guthaben vor dem Laden:\n";
+                print_r($balanceBefore);
+
+                // Testguthaben laden
+                $charge = $sender->addTestFundsWithCard($amount);
+
+                // Guthaben nach dem Laden
+                sleep(1); // Kurz warten
+                $balanceAfter = $sender->checkAvailableBalance();
+
+                App::result('success', true);
+                App::result('charge_id', $charge->id);
+                App::result('amount_added', $amount);
+                App::result('balance_before', $balanceBefore);
+                App::result('balance_after', $balanceAfter);
+                App::contenttype('application/json');
+            } catch (\Exception $e) {
+                App::result('success', false);
+                App::result('error', $e->getMessage());
+                App::contenttype('application/json');
+                http_response_code(400);
+            }
+        }, ['get'], true);
+
+        // Route zur Guthaben-Abfrage
+        BasicRoute::add('/stripe/balance', function ($matches) {
+            try {
+                $db = App::get('session')->getDB();
+                $stripeSecretKey = $db->singleValue(
+                    'SELECT val FROM stripe_environment WHERE id="client_secret"',
+                    [],
+                    'val'
+                );
+
+                $sender = new SendToBankAccount($stripeSecretKey);
+                $balance = $sender->checkAvailableBalance();
+
+                App::result('success', true);
+                App::result('balance', $balance);
+                App::contenttype('application/json');
+            } catch (\Exception $e) {
+                App::result('success', false);
+                App::result('error', $e->getMessage());
+                App::contenttype('application/json');
+                http_response_code(400);
+            }
+        }, ['get'], true);
+
         BasicRoute::add('/stripe/sendmoney', function ($matches) {
             try {
                 $db = App::get('session')->getDB();

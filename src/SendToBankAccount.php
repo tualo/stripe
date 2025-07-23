@@ -370,9 +370,12 @@ class SendToBankAccount
         try {
             $accountLink = \Stripe\AccountLink::create([
                 'account' => $accountId,
-                'refresh_url' => 'https://yourdomain.com/stripe/refresh',
-                'return_url' => 'https://yourdomain.com/stripe/return',
+                //'refresh_url' => 'https://yourdomain.com/stripe/refresh',
+                'refresh_url' => 'https://world-contact.de/',
+                'return_url' => 'https://world-contact.de/',
                 'type' => 'account_onboarding',
+
+
             ]);
 
             return $accountLink->url;
@@ -405,6 +408,110 @@ class SendToBankAccount
             ];
         } catch (Exception $e) {
             throw new Exception("Fehler beim Status-Abruf: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Lädt Testguthaben über eine Charge (nur für Test-Modus)
+     * 
+     * @param float $amount Betrag in Euro
+     * @return \Stripe\Charge
+     * @throws Exception
+     */
+    public function addTestFunds(float $amount): \Stripe\Charge
+    {
+        try {
+            // Betrag in Cents umwandeln
+            $amountInCents = (int) ($amount * 100);
+
+            // Test-Kreditkarte für verfügbares Guthaben
+            $charge = \Stripe\Charge::create([
+                'amount' => $amountInCents,
+                'currency' => $this->config['currency'],
+                'source' => 'tok_bypassPending', // Spezieller Test-Token für sofortiges Guthaben
+                'description' => 'Test funds for payout',
+                'metadata' => [
+                    'type' => 'test_funding',
+                    'purpose' => 'available_balance'
+                ]
+            ]);
+
+            return $charge;
+        } catch (Exception $e) {
+            throw new Exception("Fehler beim Laden von Testguthaben: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Alternative Methode mit der empfohlenen Testkarte
+     * 
+     * @param float $amount Betrag in Euro
+     * @return \Stripe\Charge
+     * @throws Exception
+     */
+    public function addTestFundsWithCard(float $amount): \Stripe\Charge
+    {
+        try {
+            $amountInCents = (int) ($amount * 100);
+
+            // Erstelle Token mit Test-Kreditkarte 4000000000000077
+            $token = \Stripe\Token::create([
+                'card' => [
+                    'number' => '4000000000000077',
+                    'exp_month' => 12,
+                    'exp_year' => date('Y') + 2,
+                    'cvc' => '123'
+                ]
+            ]);
+
+            $charge = \Stripe\Charge::create([
+                'amount' => $amountInCents,
+                'currency' => $this->config['currency'],
+                'source' => $token->id,
+                'description' => 'Test funds for available balance'
+            ]);
+
+            return $charge;
+        } catch (Exception $e) {
+            throw new Exception("Fehler beim Laden von Testguthaben mit Karte: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Prüft das verfügbare Guthaben
+     * 
+     * @return array Guthaben-Informationen
+     */
+    public function checkAvailableBalance(): array
+    {
+        try {
+            $balance = \Stripe\Balance::retrieve();
+
+            $available = [];
+            foreach ($balance->available as $item) {
+                $available[] = [
+                    'amount' => $item->amount / 100,
+                    'currency' => $item->currency,
+                    'source_types' => $item->source_types ?? null
+                ];
+            }
+
+            $pending = [];
+            foreach ($balance->pending as $item) {
+                $pending[] = [
+                    'amount' => $item->amount / 100,
+                    'currency' => $item->currency,
+                    'source_types' => $item->source_types ?? null
+                ];
+            }
+
+            return [
+                'available' => $available,
+                'pending' => $pending,
+                'livemode' => $balance->livemode
+            ];
+        } catch (Exception $e) {
+            throw new Exception("Fehler beim Abrufen des Guthabens: " . $e->getMessage());
         }
     }
 }
