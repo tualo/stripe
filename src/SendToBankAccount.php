@@ -449,7 +449,7 @@ class SendToBankAccount
      * @return \Stripe\Charge
      * @throws Exception
      */
-    public function addTestFundsWithCard(float $amount): \Stripe\Charge
+    public function addTestFundsWithCardX(float $amount): \Stripe\Charge
     {
         try {
             $amountInCents = (int) ($amount * 100);
@@ -512,6 +512,169 @@ class SendToBankAccount
             ];
         } catch (Exception $e) {
             throw new Exception("Fehler beim Abrufen des Guthabens: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Lädt Testguthaben mit vorgefertigten Test-Tokens
+     * 
+     * @param float $amount Betrag in Euro
+     * @return \Stripe\Charge
+     * @throws Exception
+     */
+    public function addTestFundsWithCard(float $amount): \Stripe\Charge
+    {
+        try {
+            $amountInCents = (int) ($amount * 100);
+
+            // Verwende vorgefertigte Test-Tokens anstatt direkter Kartennummern
+            $testTokens = [
+                'tok_visa' => 'Visa ending in 4242',
+                'tok_visa_debit' => 'Visa debit ending in 5556',
+                'tok_mastercard' => 'Mastercard ending in 4444',
+                'tok_amex' => 'American Express ending in 8431',
+                'tok_bypassPending' => 'Test card for immediate available balance'
+            ];
+
+            // Verwende den Token für sofortiges verfügbares Guthaben
+            $selectedToken = 'tok_bypassPending';
+
+            $charge = \Stripe\Charge::create([
+                'amount' => $amountInCents,
+                'currency' => $this->config['currency'],
+                'source' => $selectedToken,
+                'description' => 'Test funds for available balance',
+                'metadata' => [
+                    'type' => 'test_funding',
+                    'purpose' => 'available_balance',
+                    'token_used' => $selectedToken
+                ]
+            ]);
+
+            return $charge;
+        } catch (Exception $e) {
+            throw new Exception("Fehler beim Laden von Testguthaben mit Karte: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Alternative: Lädt Testguthaben mit PaymentMethod API
+     * 
+     * @param float $amount Betrag in Euro
+     * @return \Stripe\PaymentIntent
+     * @throws Exception
+     */
+    public function addTestFundsWithPaymentMethod(float $amount): \Stripe\PaymentIntent
+    {
+        try {
+            $amountInCents = (int) ($amount * 100);
+
+            // Erstelle PaymentMethod mit Test-Karte
+            $paymentMethod = \Stripe\PaymentMethod::create([
+                'type' => 'card',
+                'card' => [
+                    'token' => 'tok_visa' // Vorgefertigter Test-Token
+                ]
+            ]);
+
+            // Erstelle PaymentIntent
+            $paymentIntent = \Stripe\PaymentIntent::create([
+                'amount' => $amountInCents,
+                'currency' => $this->config['currency'],
+                'payment_method' => $paymentMethod->id,
+                'confirmation_method' => 'manual',
+                'confirm' => true,
+                'description' => 'Test funds via PaymentMethod',
+                'metadata' => [
+                    'type' => 'test_funding',
+                    'method' => 'payment_intent'
+                ]
+            ]);
+
+            return $paymentIntent;
+        } catch (Exception $e) {
+            throw new Exception("Fehler beim Laden von Testguthaben via PaymentMethod: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Erstellt einen Charge mit der empfohlenen Testkarte für verfügbares Guthaben
+     * 
+     * @param float $amount Betrag in Euro
+     * @return \Stripe\Charge
+     * @throws Exception
+     */
+    public function addTestFundsDirectBalance(float $amount): \Stripe\Charge
+    {
+        try {
+            $amountInCents = (int) ($amount * 100);
+
+            // Verwende die spezielle Testkarte für sofortiges verfügbares Guthaben
+            // Diese Karte fügt Geld direkt zum verfügbaren Guthaben hinzu
+            $charge = \Stripe\Charge::create([
+                'amount' => $amountInCents,
+                'currency' => $this->config['currency'],
+                'source' => 'tok_bypassPending', // Spezieller Token für verfügbares Guthaben
+                'description' => 'Test funds - immediate available balance',
+                'metadata' => [
+                    'type' => 'test_funding',
+                    'purpose' => 'immediate_available_balance'
+                ]
+            ]);
+
+            return $charge;
+        } catch (Exception $e) {
+            throw new Exception("Fehler beim direkten Laden von verfügbarem Testguthaben: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Erstellt mehrere kleine Charges um Guthaben aufzubauen
+     * 
+     * @param float $totalAmount Gesamtbetrag in Euro
+     * @param int $numberOfCharges Anzahl der Charges
+     * @return array Array von Charge-Objekten
+     * @throws Exception
+     */
+    public function addTestFundsMultiple(float $totalAmount, int $numberOfCharges = 3): array
+    {
+        try {
+            $charges = [];
+            $amountPerCharge = $totalAmount / $numberOfCharges;
+            $amountInCents = (int) ($amountPerCharge * 100);
+
+            $testTokens = [
+                'tok_visa',
+                'tok_visa_debit',
+                'tok_mastercard'
+            ];
+
+            for ($i = 0; $i < $numberOfCharges; $i++) {
+                $token = $testTokens[$i % count($testTokens)];
+
+                $charge = \Stripe\Charge::create([
+                    'amount' => $amountInCents,
+                    'currency' => $this->config['currency'],
+                    'source' => $token,
+                    'description' => "Test funds batch {$i}",
+                    'metadata' => [
+                        'type' => 'test_funding_batch',
+                        'batch_number' => $i,
+                        'total_batches' => $numberOfCharges
+                    ]
+                ]);
+
+                $charges[] = $charge;
+
+                // Kurze Pause zwischen den Charges
+                if ($i < $numberOfCharges - 1) {
+                    sleep(1);
+                }
+            }
+
+            return $charges;
+        } catch (Exception $e) {
+            throw new Exception("Fehler beim Erstellen mehrerer Test-Charges: " . $e->getMessage());
         }
     }
 }

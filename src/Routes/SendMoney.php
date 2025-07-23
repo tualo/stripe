@@ -25,6 +25,7 @@ class SendMoney implements IRoute
                 );
 
                 $amount = floatval($_GET['amount'] ?? 100.00);
+                $method = $_GET['method'] ?? 'direct'; // direct, payment_method, multiple
 
                 $sender = new SendToBankAccount($stripeSecretKey);
 
@@ -33,15 +34,46 @@ class SendMoney implements IRoute
                 echo "Guthaben vor dem Laden:\n";
                 print_r($balanceBefore);
 
-                // Testguthaben laden
-                $charge = $sender->addTestFundsWithCard($amount);
+                $result = null;
 
-                // Guthaben nach dem Laden
-                sleep(1); // Kurz warten
+                switch ($method) {
+                    case 'direct':
+                        // Verwende direktes verfügbares Guthaben
+                        $result = $sender->addTestFundsDirectBalance($amount);
+                        break;
+
+                    case 'payment_method':
+                        // Verwende PaymentMethod API
+                        $result = $sender->addTestFundsWithPaymentMethod($amount);
+                        break;
+
+                    case 'multiple':
+                        // Erstelle mehrere kleinere Charges
+                        $charges = $sender->addTestFundsMultiple($amount, 3);
+                        $result = $charges[0]; // Erstes Charge-Objekt für Response
+                        break;
+
+                    default:
+                        // Standard-Methode mit Test-Token
+                        $result = $sender->addTestFundsWithCard($amount);
+                        break;
+                }
+
+                // Warte auf Verfügbarkeit
+                sleep(2);
                 $balanceAfter = $sender->checkAvailableBalance();
 
                 App::result('success', true);
-                App::result('charge_id', $charge->id);
+                App::result('method', $method);
+
+                if ($method === 'multiple') {
+                    App::result('charges', array_map(function ($charge) {
+                        return ['id' => $charge->id, 'amount' => $charge->amount / 100];
+                    }, $charges));
+                } else {
+                    App::result('charge_id', $result->id);
+                }
+
                 App::result('amount_added', $amount);
                 App::result('balance_before', $balanceBefore);
                 App::result('balance_after', $balanceAfter);
