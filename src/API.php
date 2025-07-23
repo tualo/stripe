@@ -1,4 +1,5 @@
 <?php
+
 namespace Tualo\Office\Stripe;
 
 use Tualo\Office\Basic\TualoApplication as App;
@@ -19,10 +20,12 @@ use Stripe\Checkout;
  * 
  */
 
-class API {
+class API
+{
 
     private static $testenvironment = true;
-    public static function setTestEnvironment(bool $value):void{
+    public static function setTestEnvironment(bool $value): void
+    {
         self::$testenvironment = $value;
     }
 
@@ -33,22 +36,22 @@ class API {
         string $product_description,
         float $amount,
         int $quantity,
-        int $expires_in=3600
-    ):array{
+        int $expires_in = 3600
+    ): array {
 
         $db = App::get('session')->getDB();
-        $stripeSecretKey = $db->singleValue('SELECT val FROM stripe_environment WHERE id="client_secret"',[],'val');
+        $stripeSecretKey = $db->singleValue('SELECT val FROM stripe_environment WHERE id="client_secret"', [], 'val');
         Stripe::setApiKey($stripeSecretKey);
         $checkout_session = Checkout\Session::create([
             'line_items' => [[
                 # Provide the exact Price ID (e.g. pr_1234) of the product you want to sell
                 'price_data' => [
-                    'currency'=>'eur',
-                    'product_data'=>[
-                        'name'=>$product_name,
-                        'description'=>$product_description
+                    'currency' => 'eur',
+                    'product_data' => [
+                        'name' => $product_name,
+                        'description' => $product_description
                     ],
-                    'unit_amount' => round(100*floatval($amount),0),
+                    'unit_amount' => round(100 * floatval($amount), 0),
                 ],
                 'quantity' => $quantity,
             ]],
@@ -59,38 +62,39 @@ class API {
         ]);
 
         return  [
-            'url'=>$checkout_session->url,
-            'id'=>$checkout_session->id,
-            'payment_intent'=>$checkout_session->payment_intent,
-            'expires_at'=>$checkout_session->expires_at
+            'url' => $checkout_session->url,
+            'id' => $checkout_session->id,
+            'payment_intent' => $checkout_session->payment_intent,
+            'expires_at' => $checkout_session->expires_at
         ];
     }
 
     public static function createCustomer(
         string $name,
         string $email,
-        array $address=[],
-    ):array{
-        
+        array $address = [],
+    ): \Stripe\Customer {
+
         $db = App::get('session')->getDB();
-        $stripeSecretKey = $db->singleValue('SELECT val FROM stripe_environment WHERE id="client_secret"',[],'val');
-        Stripe::setApiKey($stripeSecretKey);
-        $data =[
+        $stripeSecretKey = $db->singleValue('SELECT val FROM stripe_environment WHERE id="client_secret"', [], 'val');
+        $stripe = new \Stripe\StripeClient($stripeSecretKey);
+        $data = [
             'name' => $name,
             'email' => $email,
         ];
-        if (count($address)>0){
+        if (count($address) > 0) {
             $data['address'] = $address;
         }
         $response = $stripe->customers->create($data);
         return $response;
     }
 
-    
 
-    public static function cancelSubscription($id){
+
+    public static function cancelSubscription($id)
+    {
         $db = App::get('session')->getDB();
-        $stripeSecretKey = $db->singleValue('SELECT val FROM stripe_environment WHERE id="client_secret"',[],'val');
+        $stripeSecretKey = $db->singleValue('SELECT val FROM stripe_environment WHERE id="client_secret"', [], 'val');
         Stripe::setApiKey($stripeSecretKey);
         $stripe = new \Stripe\StripeClient($stripeSecretKey);
         return $stripe->subscriptions->cancel($id, []);
@@ -105,30 +109,30 @@ class API {
         string $product_description,
         float $amount,
         int $quantity,
-        int $expires_in=3600,
-        string $inteval='month',
-        int $interval_count=1
+        int $expires_in = 3600,
+        string $inteval = 'month',
+        int $interval_count = 1
 
-    ):array{
+    ): array {
         $db = App::get('session')->getDB();
-        $stripeSecretKey = $db->singleValue('SELECT val FROM stripe_environment WHERE id="client_secret"',[],'val');
+        $stripeSecretKey = $db->singleValue('SELECT val FROM stripe_environment WHERE id="client_secret"', [], 'val');
         Stripe::setApiKey($stripeSecretKey);
         // Create a checkout session
         $checkout_session = \Stripe\Checkout\Session::create([
             'payment_method_types' => ['card'],
             'line_items' => [[
                 'price_data' => [
-                        'currency'=>'eur',
-                        'product_data'=>[
-                            'name'=>$product_name,
-                            'description'=>$product_description
-                        ],
-                        'unit_amount' => round(100*floatval($amount),0),
-                        'recurring' =>[
-                            'interval'=>$inteval,
-                            'interval_count'=>$interval_count
-                        ]
+                    'currency' => 'eur',
+                    'product_data' => [
+                        'name' => $product_name,
+                        'description' => $product_description
                     ],
+                    'unit_amount' => round(100 * floatval($amount), 0),
+                    'recurring' => [
+                        'interval' => $inteval,
+                        'interval_count' => $interval_count
+                    ]
+                ],
                 'quantity' => $quantity, // Set the quantity to 1 for a standard subscription
             ]],
             'mode' => 'subscription',
@@ -139,9 +143,9 @@ class API {
 
 
         return  [
-            'url'=>$checkout_session->url,
-            'id'=>$checkout_session->id,
-            'payment_intent'=>$checkout_session->payment_intent
+            'url' => $checkout_session->url,
+            'id' => $checkout_session->id,
+            'payment_intent' => $checkout_session->payment_intent
         ];
     }
 }
