@@ -154,6 +154,7 @@ class SendToBankAccount
      */
     private function buildIndividualData(array $accountData): array
     {
+
         return [
             'first_name' => $accountData['first_name'],
             'last_name' => $accountData['last_name'],
